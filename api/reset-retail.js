@@ -1,0 +1,76 @@
+// /api/reset-retail.js
+// Vercel serverless function — admin-only (requires Firebase Auth ID token).
+// Removes any custom instrument links pointing at goldHajar or silverChorsa,
+// across every backend source (Ratnam, KJ Bullion, Shri Shyam). Does NOT
+// touch MCX/Comex/USD-INR links — those stay exactly as configured. Premiums
+// are reset separately, client-side, since those live in the main settings
+// document the owner already has direct write access to.
+
+const admin = require('firebase-admin');
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
+const db = admin.firestore();
+// Forces plain HTTP requests instead of a persistent gRPC connection —
+// long-lived gRPC connections can go silently stale between invocations
+// on serverless platforms (the function freezes, the connection dies, but
+// the SDK doesn't notice until the next write hangs forever waiting on a
+// dead connection). preferRest makes every call a fresh, independent HTTP
+// request instead, which can't have this staleness problem.
+db.settings({ preferRest: true });
+const SOURCES = ['ratnam', 'kjbullion', 'shrishyam'];
+const RETAIL_TARGETS = ['goldHajar', 'silverChorsa'];
+
+module.exports = async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) {
+    return res.status(401).json({ error: 'Missing Authorization: Bearer <idToken> header' });
+  }
+  try {
+    await admin.auth().verifyIdToken(token);
+  } catch (e) {
+    return res.status(401).json({ error: 'Invalid or expired login token' });
+  }
+
+  try {
+    const removed = [];
+    for (const source of SOURCES) {
+      const ref = db.collection('liveMarket').doc(source + '_customMapping');
+      const snap = await ref.get();
+      if (!snap.exists) continue;
+      const data = snap.data();
+      const remaining = {};
+      for (const [name, target] of Object.entries(data)) {
+        if (RETAIL_TARGETS.includes(target)) {
+          removed.push({ source, name, target });
+          continue;
+        }
+        remaining[name] = target;
+      }
+      await ref.set(remaining);
+    }
+    return res.status(200).json({ ok: true, removed });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to reset retail links' });
+  }
+};
