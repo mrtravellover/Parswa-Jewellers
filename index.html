@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Shah Jewellers — Calculator</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="images/favicon-48x48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="images/favicon-192x192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600;700&family=Outfit:wght@500;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FIREBASE CONFIG — Shah Jewellers Calculator
+     Project: shah-jewellers-calculator
+     ══════════════════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  window.SJ_FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyDKPGejrOzqpbuaf1daNKuT4eVmo-vRw5c",
+    authDomain:        "shah-jewellers-calculator.firebaseapp.com",
+    projectId:         "shah-jewellers-calculator",
+    storageBucket:     "shah-jewellers-calculator.firebasestorage.app",
+    messagingSenderId: "972434693821",
+    appId:             "1:972434693821:web:32bb1caecb38f55e3921d4"
+  };
+</script>
+<style>
+  @supports (-webkit-touch-callout: none) {
+    body { -webkit-text-size-adjust: 100%; }
+    input[type="number"], input[type="date"], input[type="text"] { font-size: 16px !important; }
+  }
+</style>
+</head>
+<body>
+<!-- Font warm-up: invisible, forces the browser to fetch these web fonts
+     early (fonts used ONLY inside <canvas> are not auto-fetched, since
+     canvas text doesn't trigger the normal DOM font-loading mechanism). -->
+<div aria-hidden="true" style="position:absolute; left:-9999px; top:-9999px; height:0; overflow:hidden; opacity:0;">
+  <span style="font-family:'Noto Sans Devanagari'; font-weight:700;">आज का दैनिक भाव जय जिनेन्द्र</span>
+  <span style="font-family:'Outfit'; font-weight:700;">₹0123456789</span>
+</div>
+
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <img src="images/logo.png" alt="Shah Jewellers" style="height:42px;width:42px;object-fit:cover;border-radius:50%;flex-shrink:0;background:#000;">
+    <div style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+      <div class="topbar-name">Shah Jewellers</div>
+      <div class="topbar-sub" id="topbar-sub">Tradition of Trust</div>
+    </div>
+  </div>
+  <button class="lang-btn" onclick="toggleLang()" id="langBtn">
+    🌐 <span id="langLabel">English</span> ▾
+  </button>
+  <div class="lang-select" id="langSelect">
+    <div class="lang-option active" onclick="setLang('en')">🇺🇸 English</div>
+    <div class="lang-option" onclick="setLang('hi')">🇮🇳 हिन्दी</div>
+    <div class="lang-option" onclick="setLang('gu')">🇮🇳 ગુજરાતી</div>
+    <div class="lang-option" onclick="setLang('mr')">🇮🇳 मराठी</div>
+    <div class="lang-option" onclick="setLang('ur')">🇵🇰 اردو</div>
+  </div>
+</div>
+
+<!-- DASHBOARD (Home Screen) -->
+<div class="tab-panel active" id="panel-home">
+  <div class="dash-container">
+    <div class="dash-welcome">
+      <div class="dash-welcome-title">Welcome</div>
+      <div class="dash-welcome-sub">Choose a tool to get started</div>
+    </div>
+    <div class="dash-grid">
+      <button class="dash-card" onclick="switchTab('single')">
+        <img src="images/icon-single.png" alt="Interest Calculator" class="dash-icon">
+        <span class="dash-label" id="dash-lbl-single">Interest Calculator</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('bulk')">
+        <img src="images/icon-bulk.png" alt="Bulk Calculator" class="dash-icon">
+        <span class="dash-label" id="dash-lbl-bulk">Bulk Calculator</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('bullion')">
+        <img src="images/icon-bullion.png" alt="Bullion Receipt" class="dash-icon">
+        <span class="dash-label" id="dash-lbl-bullion">Bullion Receipt</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('ws')">
+        <img src="images/icon-ws.png" alt="Wholesale" class="dash-icon">
+        <span class="dash-label">Wholesale</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('poster')">
+        <img src="images/icon-poster.png" alt="Rate Poster" class="dash-icon">
+        <span class="dash-label">Rate Poster</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('rashi')">
+        <img src="images/icon-rashi.png" alt="Rashi Ratna" class="dash-icon">
+        <span class="dash-label">Rashi Ratna</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('goldmaking')">
+        <img src="images/icon-goldmaking.png" alt="Gold Making Calculator" class="dash-icon">
+        <span class="dash-label">Gold Making Calculator</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('buyback')">
+        <img src="images/icon-buyback.png" alt="Gold Buyback Calculator" class="dash-icon">
+        <span class="dash-label">Gold Buyback Calculator</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('alloy')">
+        <img src="images/icon-alloy.png" alt="Alloy Mixing Calculator" class="dash-icon">
+        <span class="dash-label">Alloy Mixing Calculator</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('payment')">
+        <img src="images/icon-payment.png" alt="Collect Payment" class="dash-icon">
+        <span class="dash-label">Collect Payment</span>
+      </button>
+      <button class="dash-card" onclick="switchTab('rates')">
+        <img src="images/icon-rates.png" alt="Live Rates" class="dash-icon">
+        <span class="dash-label">Live Rate Reference</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ========== SINGLE TAB ========== -->
+  <div class="tab-panel" id="panel-single">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+    <div class="card">
+      <div class="field">
+        <label id="lbl-principal">Principal Amount (₹)</label>
+        <input type="number" id="principal" placeholder="e.g. 100000" oninput="showWords()" min="0">
+        <div class="amount-words" id="amountWords">—</div>
+        <div class="error-msg" id="err-principal">Please enter a valid amount.</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label id="lbl-rate">Monthly Rate (%)</label>
+          <input type="number" id="rate" placeholder="e.g. 2" step="0.01" min="0">
+          <div class="error-msg" id="err-rate">Enter valid rate.</div>
+        </div>
+        <div class="field">
+          <label id="lbl-from">From Date</label>
+          <input type="date" id="fromDate">
+          <div class="error-msg" id="err-date">Invalid date range.</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label id="lbl-to">To Date</label>
+          <input type="date" id="toDate">
+        </div>
+        <div class="field" style="visibility:hidden"></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <strong id="lbl-compound">Compound Interest</strong>
+          <span id="lbl-compound-sub">Toggle to enable compounding</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="compoundToggle" onchange="onCompoundChange()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="freq-row" id="freqRow">
+        <label id="lbl-freq">Compounding Frequency</label>
+        <div class="mode-selector">
+          <button class="mode-pill active" id="pill-monthly" onclick="setFreq('monthly')">Monthly</button>
+          <button class="mode-pill" id="pill-yearly" onclick="setFreq('yearly')">Yearly</button>
+        </div>
+      </div>
+      <button class="calc-btn" onclick="calculate()" id="calcBtn">Calculate Interest →</button>
+    </div>
+
+    <div class="result-card" id="resultCard">
+      
+      <div class="result-header" id="res-header">Total Interest Earned</div>
+      <div class="result-amount">₹<span id="resInterest">0</span></div>
+      <div class="result-breakdown">
+        <div class="breakdown-item"><div class="bi-label" id="lbl-principal2">Principal</div><div class="bi-value">₹<span id="resPrincipal">0</span></div></div>
+        <div class="breakdown-item"><div class="bi-label" id="lbl-days2">Total Days</div><div class="bi-value"><span id="resDays">0</span></div></div>
+        <div class="breakdown-item breakdown-highlight"><div class="bi-label" id="lbl-total2">Total Amount</div><div class="bi-value bi-value-highlight">₹<span id="resTotal">0</span></div></div>
+        <div class="breakdown-item"><div class="bi-label" id="lbl-rate2">Monthly Rate</div><div class="bi-value"><span id="resRate">0</span>%</div></div>
+        <div class="breakdown-item"><div class="bi-label" id="lbl-period2">Period</div><div class="bi-value"><span id="resPeriod">—</span></div></div>
+        <div class="breakdown-item"><div class="bi-label" id="lbl-type2">Type</div><div class="bi-value"><span id="resType">—</span></div></div>
+      </div>
+      <div class="duration-box" id="resDurationBox">
+        <div class="dur-segment"><div class="dur-num" id="durYears">0</div><div class="dur-label" id="dur-lbl-years">Years</div></div>
+        <div class="dur-segment"><div class="dur-num" id="durMonths">0</div><div class="dur-label" id="dur-lbl-months">Months</div></div>
+        <div class="dur-segment"><div class="dur-num" id="durDays">0</div><div class="dur-label" id="dur-lbl-days">Days</div></div>
+      </div>
+    </div>
+
+    <div class="monthly-wrap" id="monthlyWrap">
+      <div class="monthly-head">
+        <span id="lbl-monthly">Month-by-Month Breakdown</span>
+        <span style="font-size:0.74rem;color:rgba(255,255,255,0.4)" id="lbl-actual">Actual days per month</span>
+      </div>
+      <div class="table-scroll-wrap">
+        <table><thead><tr>
+          <th id="th-month">Month</th><th id="th-days">Days</th>
+          <th id="th-opening">Opening</th><th id="th-interest">Interest</th><th id="th-closing">Closing</th>
+        </tr></thead><tbody id="monthlyBody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="share-section" id="shareSection">
+      <div class="name-field-wrap">
+        <div class="name-field-icon">👤</div>
+        <div class="name-field-inner">
+          <label id="lbl-customer-name">Customer Name (optional)</label>
+          <input type="text" id="customerName" placeholder="e.g. Ramesh Shah" autocomplete="off">
+        </div>
+      </div>
+      <div class="share-title">📤 <span id="lbl-share">Share Result</span></div>
+      <div class="share-btns">
+        <button class="share-btn share-wa" onclick="shareWhatsApp()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="share-btn share-copy" onclick="copyResult()" id="copyBtn">
+          📋 <span id="lbl-copy">Copy</span>
+        </button>
+      </div>
+    </div>
+  </div><!-- /panel-single -->
+
+  <!-- ========== BULK TAB ========== -->
+  <div class="tab-panel" id="panel-bulk">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+    <div class="bulk-header-card">
+      <div class="bulk-title" id="bulk-title">📋 Bulk Interest Calculator</div>
+      <div class="bulk-subtitle" id="bulk-subtitle">Calculate interest for up to 10 amounts at once</div>
+    </div>
+
+    <!-- Global settings -->
+    <div class="bulk-global">
+      <div class="bulk-global-title" id="bulk-global-title">⚙️ Common Settings (applies to all rows)</div>
+      <div class="row">
+        <div class="field">
+          <label id="bulk-lbl-rate">Monthly Rate (%)</label>
+          <input type="number" id="bulk-rate" placeholder="e.g. 2" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label id="bulk-lbl-from">Common From Date</label>
+          <input type="date" id="bulk-from">
+        </div>
+      </div>
+      <div class="row" style="margin-top:-4px">
+        <div class="field">
+          <label id="bulk-lbl-to">Common To Date</label>
+          <input type="date" id="bulk-to">
+        </div>
+        <div class="field" style="display:flex; align-items:flex-end; padding-bottom:0">
+          <div style="width:100%">
+            <label style="margin-bottom:5px; display:block; font-size:0.72rem; color:#7a6540; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;" id="bulk-lbl-override">Per-row dates override common</label>
+            <div style="font-size:0.78rem; color:#9a8060; padding: 10px 0 2px;">Leave row dates blank to use common dates above.</div>
+          </div>
+        </div>
+      </div>
+      <div class="toggle-row" style="margin-bottom:0">
+        <div class="toggle-info">
+          <strong id="bulk-lbl-compound">Compound Interest</strong>
+          <span id="bulk-lbl-compound-sub">Toggle for all rows</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="bulk-compoundToggle" onchange="onBulkCompoundChange()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="freq-row" id="bulk-freqRow" style="margin-top:12px; margin-bottom:0">
+        <label id="bulk-lbl-freq">Compounding Frequency</label>
+        <div class="mode-selector" style="margin-bottom:0">
+          <button class="mode-pill active" id="bulk-pill-monthly" onclick="setBulkFreq('monthly')">Monthly</button>
+          <button class="mode-pill" id="bulk-pill-yearly" onclick="setBulkFreq('yearly')">Yearly</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10 Entry Rows -->
+    <div class="bulk-entries" id="bulkEntries"></div>
+
+    <button class="clear-btn" onclick="clearBulk()" id="bulk-clear-btn">🗑 Clear All</button>
+    <button class="bulk-calc-btn" onclick="calculateBulk()" id="bulk-calc-btn">Calculate All 10 →</button>
+
+    <!-- Summary -->
+    <div class="bulk-summary" id="bulkSummary">
+      <div class="bs-brand" style="display:none">Shah Jewellers — Bulk Calculation</div>
+      <div class="bs-label" id="bs-label">Summary of All Entries</div>
+      <div class="bs-grid">
+        <div class="bs-box"><div class="bs-box-label" id="bs-entries-lbl">Entries</div><div class="bs-box-val" id="bs-entries">0</div></div>
+        <div class="bs-box"><div class="bs-box-label" id="bs-total-p-lbl">Total Principal</div><div class="bs-box-val big" id="bs-total-p">₹0</div></div>
+        <div class="bs-box"><div class="bs-box-label" id="bs-total-i-lbl">Total Interest</div><div class="bs-box-val big" style="color:var(--gold-light)" id="bs-total-i">₹0</div></div>
+        <div class="bs-box" style="grid-column: span 3"><div class="bs-box-label" id="bs-grand-lbl">Grand Total (Principal + Interest)</div><div class="bs-box-val big" style="font-size:clamp(1.2rem, 6vw, 2rem); color:var(--gold-light)" id="bs-grand">₹0</div></div>
+      </div>
+    </div>
+
+    <!-- Bulk summary table -->
+    <div class="bulk-sum-table-wrap" id="bulkSumTable">
+      <div class="monthly-head">
+        <span id="bulk-table-title">All Entries Breakdown</span>
+      </div>
+      <div class="table-scroll-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th id="bulk-th-principal">Principal</th>
+            <th id="bulk-th-rate">Rate</th>
+            <th id="bulk-th-period">Period</th>
+            <th id="bulk-th-interest">Interest</th>
+            <th id="bulk-th-total">Total</th>
+          </tr></thead>
+          <tbody id="bulkTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bulk share -->
+    <div class="bulk-share" id="bulkShare">
+      <div class="name-field-wrap">
+        <div class="name-field-icon">👤</div>
+        <div class="name-field-inner">
+          <label id="bulk-lbl-customer-name">Customer Name (optional)</label>
+          <input type="text" id="bulkCustomerName" placeholder="e.g. Ramesh Shah" autocomplete="off">
+        </div>
+      </div>
+      <div class="share-title">📤 <span id="bulk-share-lbl">Share Bulk Result</span></div>
+      <div class="share-btns">
+        <button class="share-btn share-wa" onclick="shareBulkWhatsApp()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="share-btn share-copy" onclick="copyBulkResult()" id="bulkCopyBtn">
+          📋 <span id="bulk-copy-lbl">Copy</span>
+        </button>
+      </div>
+    </div>
+  </div><!-- /panel-bulk -->
+
+  <!-- ========== BULLION TAB ========== -->
+  <div class="tab-panel" id="panel-bullion">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <!-- Buy / Sell toggle -->
+    <div class="bull-type-row">
+      <button class="bull-type-pill" id="bull-buy-btn" onclick="setBullionType('buy')">
+        <span class="pill-icon">📥</span>
+        <span class="pill-text">Buy Trade</span>
+      </button>
+      <button class="bull-type-pill" id="bull-sell-btn" onclick="setBullionType('sell')">
+        <span class="pill-icon">📤</span>
+        <span class="pill-text">Sell Trade</span>
+      </button>
+    </div>
+
+    <div class="card">
+
+      <!-- Customer Name -->
+      <div class="field">
+        <label>Customer Name</label>
+        <input type="text" id="bull-customer" placeholder="e.g. Ramesh Shah" autocomplete="off">
+      </div>
+
+      <!-- Date -->
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="bull-date">
+      </div>
+
+      <!-- Metal selector -->
+      <div class="field">
+        <label>Select Metal</label>
+        <div class="mode-selector">
+          <button class="mode-pill active" id="bull-gold-btn" onclick="setBullionMetal('gold')">🥇 Gold</button>
+          <button class="mode-pill" id="bull-silver-btn" onclick="setBullionMetal('silver')">🥈 Silver</button>
+        </div>
+      </div>
+
+      <!-- Weight — Gold: grams + milligrams -->
+      <div id="bull-weight-gold">
+        <label style="font-size:0.74rem;font-weight:600;color:#7a6540;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:8px;">Weight</label>
+        <div class="row">
+          <div class="field" style="margin-bottom:0">
+            <label>Grams (g)</label>
+            <input type="number" id="bull-gold-g" placeholder="0" min="0" step="1" oninput="bullionCalc()">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Milligrams (mg)</label>
+            <input type="number" id="bull-gold-mg" placeholder="0" min="0" max="999" step="1" oninput="bullionCalc()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Weight — Silver: kg + grams -->
+      <div id="bull-weight-silver" style="display:none">
+        <label style="font-size:0.74rem;font-weight:600;color:#7a6540;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:8px;">Weight</label>
+        <div class="row">
+          <div class="field" style="margin-bottom:0">
+            <label>Kilograms (kg)</label>
+            <input type="number" id="bull-silver-kg" placeholder="0" min="0" step="1" oninput="bullionCalc()">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Grams (g)</label>
+            <input type="number" id="bull-silver-g" placeholder="0" min="0" max="999" step="1" oninput="bullionCalc()">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px"></div>
+
+      <!-- Rate -->
+      <div class="field">
+        <label id="bull-rate-label">Rate per 10g (₹)</label>
+        <input type="number" id="bull-rate" placeholder="e.g. 72000" min="0" oninput="bullionCalc()">
+      </div>
+
+      <!-- Additional Charges -->
+      <div class="field">
+        <label>Additional Charges (₹) <span style="font-size:0.7rem;color:#9a8060;font-weight:400;text-transform:none;">(Making, GST, etc.)</span></label>
+        <input type="number" id="bull-charges" placeholder="0" min="0" oninput="bullionCalc()">
+      </div>
+
+      <!-- Remarks (optional) -->
+      <div class="field">
+        <label>Remarks <span style="font-size:0.7rem;color:#9a8060;font-weight:400;text-transform:none;">(optional)</span></label>
+        <input type="text" id="bull-remarks" placeholder="e.g. 22K Gold, Advance Payment...">
+      </div>
+
+      <!-- LIVE SUMMARY BOX -->
+      <div class="bull-summary-box" id="bullSummaryBox">
+        <div class="bull-sum-row">
+          <span class="bull-sum-label" id="bull-sum-metal-lbl">Metal</span>
+          <span class="bull-sum-val" id="bull-sum-metal">—</span>
+        </div>
+        <div class="bull-sum-row">
+          <span class="bull-sum-label">Weight</span>
+          <span class="bull-sum-val" id="bull-sum-weight">—</span>
+        </div>
+        <div class="bull-sum-row">
+          <span class="bull-sum-label">Rate</span>
+          <span class="bull-sum-val" id="bull-sum-rate">—</span>
+        </div>
+        <div class="bull-sum-divider"></div>
+        <div class="bull-sum-row">
+          <span class="bull-sum-label">Metal Value</span>
+          <span class="bull-sum-val" id="bull-sum-metalval">₹ —</span>
+        </div>
+        <div class="bull-sum-row">
+          <span class="bull-sum-label">Additional Charges</span>
+          <span class="bull-sum-val" id="bull-sum-charges">₹ 0</span>
+        </div>
+        <div class="bull-sum-divider"></div>
+        <div class="bull-sum-row total">
+          <span class="bull-sum-label" id="bull-sum-total-lbl">Total Amount</span>
+          <span class="bull-sum-val total" id="bull-sum-total">₹ —</span>
+        </div>
+      </div>
+
+      <button class="calc-btn" style="margin-top:16px;background:linear-gradient(135deg,#7a5200,#c8922a)" onclick="generateBullionReceipt()">
+        Generate Receipt →
+      </button>
+    </div>
+
+    <!-- RECEIPT OUTPUT -->
+    <div class="bull-receipt-card" id="bullReceiptCard">
+      <div class="bull-receipt-header">
+        <div class="bull-receipt-badge" id="bull-receipt-badge">BUYING RECEIPT</div>
+        <div class="bull-receipt-date" id="bull-receipt-date">—</div>
+      </div>
+      <div class="bull-receipt-customer" id="bull-receipt-customer">Customer: —</div>
+      <div class="bull-receipt-divider"></div>
+      <div id="bull-receipt-body"></div>
+      <div class="bull-receipt-divider"></div>
+      <div class="bull-receipt-total-row">
+        <span id="bull-receipt-total-lbl">TOTAL AMOUNT</span>
+        <span class="bull-receipt-total-amt" id="bull-receipt-total">₹ 0</span>
+      </div>
+      <div class="bull-receipt-footer">Shah Jewellers — Tradition of Trust</div>
+    </div>
+
+    <!-- SHARE -->
+    <div class="bull-share-section" id="bullShareSection">
+      <div class="share-title">📤 Share Receipt</div>
+      <div class="share-btns">
+        <button class="share-btn share-wa" onclick="shareBullionWhatsApp()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="share-btn share-copy" onclick="copyBullionReceipt()" id="bullCopyBtn">
+          📋 Copy
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /panel-bullion -->
+
+  <!-- ========== WHOLESALE TAB ========== -->
+  <div class="tab-panel" id="panel-ws">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <!-- Header -->
+    <div class="ws-header-card">
+      <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--gold-light);">🏪 Wholesale Receipt</div>
+      <div style="font-size:0.75rem;color:rgba(240,201,106,0.5);margin-top:3px;">Create detailed wholesale billing for shops</div>
+    </div>
+
+    <!-- Top info card -->
+    <div class="card">
+      <div class="row">
+        <div class="field">
+          <label>Buyer / Shop Name</label>
+          <input type="text" id="ws-buyer" placeholder="e.g. Sharma Jewels, Mumbai">
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="ws-date">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Bill No. <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(optional)</span></label>
+          <input type="text" id="ws-billno" placeholder="e.g. WS-001">
+        </div>
+        <div class="field">
+          <label>Contact <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(optional)</span></label>
+          <input type="text" id="ws-contact" placeholder="Phone / City">
+        </div>
+      </div>
+
+      <!-- Metal toggle -->
+      <div class="field">
+        <label>Metal</label>
+        <div class="mode-selector">
+          <button class="mode-pill active" id="ws-gold-btn" onclick="wsSetMetal('gold')">🥇 Gold</button>
+          <button class="mode-pill" id="ws-silver-btn" onclick="wsSetMetal('silver')">🥈 Silver</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== GOLD SECTION ===== -->
+    <div id="ws-gold-section">
+
+      <!-- Gold rate -->
+      <div class="card" style="padding:16px 20px;margin-bottom:14px;">
+        <div class="row">
+          <div class="field" style="margin-bottom:0">
+            <label>Gold Rate per 10g (₹)</label>
+            <input type="number" id="ws-gold-rate" placeholder="e.g. 72000" oninput="wsGoldCalcAll()">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Purity Base (%)</label>
+            <input type="number" id="ws-gold-purity-base" placeholder="e.g. 91.67 for 22K" value="91.67" oninput="wsGoldCalcAll()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Gold items (5 rows, expandable) -->
+      <div id="ws-gold-items"></div>
+      <button class="ws-add-more-btn" id="ws-gold-add-btn" onclick="wsAddMoreGold()">➕ Add More Items</button>
+
+      <!-- Gold totals -->
+      <div class="ws-totals-card" id="ws-gold-totals" style="display:none">
+        <div class="ws-tot-title">📊 Gold Summary</div>
+        <div class="ws-tot-grid" id="ws-gold-tot-grid"></div>
+      </div>
+
+      <!-- Gold payment -->
+      <div class="card" id="ws-gold-payment-card" style="display:none">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">💳 Payment Settlement</div>
+        <div class="field">
+          <label>Payment Mode</label>
+          <div class="mode-selector">
+            <button class="mode-pill active" id="ws-pay-gold-btn"   onclick="wsSetPayMode('gold')">🥇 Gold</button>
+            <button class="mode-pill"        id="ws-pay-cash-btn"   onclick="wsSetPayMode('cash')">💵 Cash</button>
+            <button class="mode-pill"        id="ws-pay-mixed-btn"  onclick="wsSetPayMode('mixed')">⚖️ Mixed</button>
+          </div>
+        </div>
+        <div id="ws-pay-gold-fields">
+          <div class="field"><label>Fine Gold Collected (g)</label><input type="number" id="ws-pay-gold-collected" placeholder="0.000" step="0.001" oninput="wsCalcDue()"></div>
+        </div>
+        <div id="ws-pay-cash-fields" style="display:none">
+          <div class="field"><label>Cash Collected (₹)</label><input type="number" id="ws-pay-cash-collected" placeholder="0" oninput="wsCalcDue()"></div>
+        </div>
+        <div id="ws-pay-mixed-fields" style="display:none">
+          <div class="row">
+            <div class="field"><label>Fine Gold Collected (g)</label><input type="number" id="ws-pay-mixed-gold" placeholder="0.000" step="0.001" oninput="wsCalcDue()"></div>
+            <div class="field"><label>Cash Collected (₹)</label><input type="number" id="ws-pay-mixed-cash" placeholder="0" oninput="wsCalcDue()"></div>
+          </div>
+        </div>
+        <!-- Due summary -->
+        <div class="ws-due-box" id="ws-gold-due-box">
+          <div class="ws-due-row"><span>Total Fine Gold Due</span><span id="ws-due-gold-total">— g</span></div>
+          <div class="ws-due-row"><span>Total Cash Value Due</span><span id="ws-due-cash-total">₹ —</span></div>
+          <div class="ws-due-div"></div>
+          <div class="ws-due-row bold"><span>Gold Collected</span><span id="ws-due-gold-paid" style="color:#4ddb8a">—</span></div>
+          <div class="ws-due-row bold"><span>Cash Collected</span><span id="ws-due-cash-paid" style="color:#4ddb8a">—</span></div>
+          <div class="ws-due-div"></div>
+          <div id="ws-gold-due-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SILVER SECTION ===== -->
+    <div id="ws-silver-section" style="display:none">
+
+      <!-- Silver items (10 rows, expandable) -->
+      <div id="ws-silver-items"></div>
+      <button class="ws-add-more-btn" id="ws-silver-add-btn" onclick="wsAddMoreSilver()">➕ Add More Items</button>
+
+      <!-- Silver totals -->
+      <div class="ws-totals-card" id="ws-silver-totals" style="display:none">
+        <div class="ws-tot-title">📊 Silver Summary</div>
+        <div class="ws-tot-grid" id="ws-silver-tot-grid"></div>
+      </div>
+
+      <!-- Silver payment -->
+      <div class="card" id="ws-silver-payment-card" style="display:none">
+        <div style="font-size:0.78rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">💳 Payment Settlement</div>
+
+        <!-- Silver Rate (moved here) -->
+        <div class="field">
+          <label>Silver Rate per kg (₹)</label>
+          <input type="number" id="ws-silver-rate" placeholder="e.g. 90000" oninput="wsSilverCalcDue()">
+        </div>
+
+        <!-- Silver collected with purity -->
+        <div style="background:var(--paper);border-radius:10px;padding:12px 14px;border:1px solid #e0d4b8;margin-bottom:12px;">
+          <div style="font-size:0.7rem;font-weight:700;color:#7a6540;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">🥈 Silver Collected</div>
+          <div class="row" style="margin-bottom:0">
+            <div class="field" style="margin-bottom:0">
+              <label>Silver Weight (g)</label>
+              <input type="number" id="ws-silver-collected" placeholder="0.00" step="0.01" oninput="wsSilverCalcDue()">
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Purity of Silver (%)</label>
+              <input type="number" id="ws-silver-purity" placeholder="e.g. 92.5" value="92.5" step="0.01" oninput="wsSilverCalcDue()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Cash collected -->
+        <div class="field">
+          <label>Cash Collected (₹)</label>
+          <input type="number" id="ws-silver-cash-collected" placeholder="0" oninput="wsSilverCalcDue()">
+        </div>
+
+        <!-- Silver due box -->
+        <div class="ws-due-box silver" id="ws-silver-due-box">
+          <div class="ws-due-row"><span>Total Fine Silver Due</span><span id="ws-silver-fine-total">— g</span></div>
+          <div class="ws-due-row"><span>Total Labour Due</span><span id="ws-silver-labour-total">₹ —</span></div>
+          <div class="ws-due-div"></div>
+          <div class="ws-due-row bold"><span>Silver Collected</span><span id="ws-silver-paid-g" style="color:#4ddb8a">— g</span></div>
+          <div class="ws-due-row bold"><span>Fine Silver (after purity)</span><span id="ws-silver-paid-fine" style="color:#4ddb8a">— g</span></div>
+          <div class="ws-due-row bold"><span>Cash Collected</span><span id="ws-silver-paid-cash" style="color:#4ddb8a">₹ —</span></div>
+          <div class="ws-due-div"></div>
+          <div id="ws-silver-due-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate Button -->
+    <button class="calc-btn" style="background:linear-gradient(135deg,#2a1e0a,#7a5200);margin-bottom:16px" onclick="wsGenerate()">
+      🧾 Generate Wholesale Receipt →
+    </button>
+
+    <!-- RECEIPT OUTPUT -->
+    <div class="ws-receipt-output" id="wsReceiptOutput" style="display:none">
+      <div class="ws-receipt-paper" id="wsReceiptPaper"></div>
+    </div>
+
+    <!-- Share -->
+    <div class="bull-share-section" id="wsShareSection">
+      <div class="share-title">📤 Share Wholesale Receipt</div>
+      <div class="share-btns">
+        <button class="share-btn share-wa" onclick="wsShareWA()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="share-btn share-copy" onclick="wsCopy()" id="wsCopyBtn">📋 Copy</button>
+        <button class="share-btn" style="background:var(--rust);color:#fff;box-shadow:0 2px 10px rgba(192,57,43,0.3);" onclick="wsDownloadPDF()">📄 Save PDF</button>
+      </div>
+    </div>
+
+  </div><!-- /panel-ws -->
+
+  <!-- ========== RATE POSTER TAB ========== -->
+  <div class="tab-panel" id="panel-poster">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <div style="background:linear-gradient(135deg,#1a1207,#2d200c);border-radius:20px;padding:18px 22px;margin-bottom:16px;border:1px solid rgba(200,146,42,0.2);">
+      <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:#f0c96a;">📸 Daily Rate Poster</div>
+      <div style="font-size:0.75rem;color:rgba(240,201,106,0.5);margin-top:3px;">Generate WhatsApp poster with today's rates</div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:0.72rem;font-weight:700;color:#c8922a;text-transform:uppercase;letter-spacing:0.09em;margin-bottom:10px;">🎨 Choose Design</div>
+      <div class="mode-selector" id="poster-design-selector">
+        <button class="mode-pill active" onclick="posterSelectDesign('design1')">Design 1</button>
+        <button class="mode-pill" onclick="posterSelectDesign('design2')">Design 2</button>
+        <button class="mode-pill" onclick="posterSelectDesign('design3')">Design 3</button>
+      </div>
+      <div id="poster-design-note" style="font-size:0.72rem;color:#9a8060;margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:0.72rem;font-weight:700;color:#c8922a;text-transform:uppercase;letter-spacing:0.09em;margin-bottom:14px;">🥇 Gold Rates</div>
+
+      <div class="field">
+        <label>24 Carat Gold Rate (₹ per 10g) — 99.50 Purity</label>
+        <input type="number" id="poster-gold24" placeholder="e.g. 149000" oninput="posterCalc22()">
+      </div>
+
+      <div class="field">
+        <label>22 Carat Gold Rate (₹ per 10g) — Auto from 24K × 91.6%</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="number" id="poster-gold22" placeholder="Auto calculated" style="flex:1">
+          <button onclick="posterCalc22()" style="padding:10px 14px;background:var(--gold-pale);border:1.5px solid var(--gold-light);border-radius:9px;font-size:0.8rem;font-weight:700;color:var(--gold);cursor:pointer;white-space:nowrap;touch-action:manipulation;">🔄 Auto</button>
+        </div>
+        <div style="font-size:0.72rem;color:#9a8060;margin-top:4px;">You can also type manually to override</div>
+      </div>
+
+      <div style="height:1px;background:linear-gradient(90deg,transparent,#f0c96a,transparent);margin:4px 0 16px;"></div>
+      <div style="font-size:0.72rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.09em;margin-bottom:14px;">🥈 Silver Rates</div>
+
+      <div class="row">
+        <div class="field">
+          <label>Silver Sell Rate (₹ per kg)</label>
+          <input type="number" id="poster-silver-sell" placeholder="e.g. 246750">
+        </div>
+        <div class="field">
+          <label>Silver Buy Rate (₹ per kg)</label>
+          <input type="number" id="poster-silver-buy" placeholder="e.g. 244700">
+        </div>
+      </div>
+
+      <button class="calc-btn" style="margin-top:8px;background:linear-gradient(135deg,#7a1a5a,#c8308a);" onclick="generatePoster()">
+        ✨ Generate Rate Poster
+      </button>
+
+      <div style="height:1px;background:linear-gradient(90deg,transparent,#f0c96a,transparent);margin:18px 0 14px;"></div>
+
+      <div style="font-size:0.72rem;font-weight:700;color:#7a1a5a;text-transform:uppercase;letter-spacing:0.09em;margin-bottom:10px;">🤖 Share to AI Image Generator</div>
+      <div style="font-size:0.74rem;color:#9a8060;margin-bottom:12px;">Copies today's ready-made design prompt to your clipboard and opens the share menu with the Shah Jewellers logo. Pick your AI app, then just paste the prompt.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="share-btn" style="background:linear-gradient(135deg,#1a2860,#3050c8);color:#fff;box-shadow:0 2px 10px rgba(48,80,200,0.3);touch-action:manipulation;" onclick="posterShareToAI()">
+          🤖 Share to AI
+        </button>
+        <button class="share-btn share-copy" onclick="posterCopyAIPrompt()" id="aiPromptCopyBtn" style="touch-action:manipulation;">
+          📋 Copy Prompt
+        </button>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div id="poster-preview-wrap" style="display:none;margin-bottom:16px;animation:slideUp 0.4s ease;">
+      <div style="font-size:0.78rem;font-weight:600;color:#7a6540;margin-bottom:8px;text-align:center;">Preview — tap to download</div>
+      <canvas id="posterCanvas" style="width:100%;border-radius:16px;box-shadow:0 8px 32px rgba(26,18,7,0.3);display:block;"></canvas>
+    </div>
+
+    <!-- Share -->
+    <div id="poster-share" style="display:none;margin-bottom:18px;animation:slideUp 0.4s ease;">
+      <div style="font-family:'Playfair Display',serif;font-size:0.88rem;color:#7a6540;margin-bottom:10px;display:flex;align-items:center;gap:7px;">📤 Share Poster</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="share-btn share-wa" onclick="posterShareWA()" style="touch-action:manipulation;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="share-btn" style="background:linear-gradient(135deg,#7a1a5a,#c8308a);color:#fff;box-shadow:0 2px 10px rgba(200,48,138,0.3);touch-action:manipulation;" onclick="posterShare()" style="touch-action:manipulation;">
+          📤 Share PNG
+        </button>
+        <button class="share-btn" style="background:var(--gold-pale);color:var(--gold);border:1.5px solid var(--gold-light);touch-action:manipulation;" onclick="posterDownload()">
+          ⬇️ Save PNG
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /panel-poster -->
+
+  <!-- ========== RASHI RATNA TAB ========== -->
+  <div class="tab-panel" id="panel-rashi">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <div class="ws-header-card">
+      <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--gold-light);">💎 Rashi Ratna Calculator</div>
+      <div style="font-size:0.75rem;color:rgba(240,201,106,0.5);margin-top:3px;">Gemstone weight conversion & Rashi-based recommendation</div>
+    </div>
+
+    <!-- ===== GEMSTONE WEIGHT & PRICE CALCULATOR ===== -->
+    <div class="card">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">⚖️ Weight Converter</div>
+
+      <div class="field">
+        <label>Gemstone Weight (grams)</label>
+        <input type="number" id="rashi-weight-g" placeholder="e.g. 2.5" step="0.001" min="0" oninput="rashiCalcWeight()">
+      </div>
+
+      <div class="row">
+        <div class="field" style="margin-bottom:0">
+          <label>Carat</label>
+          <input type="text" id="rashi-carat" placeholder="—" readonly style="background:#f5f0e8;">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Rati</label>
+          <input type="text" id="rashi-rati" placeholder="—" readonly style="background:#f5f0e8;">
+        </div>
+      </div>
+
+      <div style="height:1px;background:linear-gradient(90deg,transparent,var(--gold-light),transparent);margin:18px 0 16px;"></div>
+
+      <div class="field">
+        <label>Rate (₹ per Carat)</label>
+        <input type="number" id="rashi-rate" placeholder="e.g. 200" min="0" oninput="rashiCalcWeight()">
+      </div>
+
+      <div class="bull-summary-box" id="rashiPriceBox" style="display:none">
+        <div class="bull-sum-row">
+          <span class="bull-sum-label">Weight</span>
+          <span class="bull-sum-val" id="rashi-sum-weight">—</span>
+        </div>
+        <div class="bull-sum-row">
+          <span class="bull-sum-label">Rate</span>
+          <span class="bull-sum-val" id="rashi-sum-rate">—</span>
+        </div>
+        <div class="bull-sum-divider"></div>
+        <div class="bull-sum-row total">
+          <span class="bull-sum-label">Total Amount</span>
+          <span class="bull-sum-val total" id="rashi-sum-total">₹ —</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RASHI LOOKUP BY NAME ===== -->
+    <div class="card">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">🔮 राशि व रत्न सुझाव (Name-based Rashi Lookup)</div>
+
+      <div class="field" style="margin-bottom:0">
+        <label>व्यक्ति का नाम (हिंदी में)</label>
+        <input type="text" id="rashi-name" placeholder="जैसे: राहुल, सीता, अमित" oninput="rashiLookup()">
+        <div style="font-size:0.72rem;color:#9a8060;margin-top:5px;">नाम का पहला अक्षर राशि निर्धारित करता है</div>
+      </div>
+    </div>
+
+    <!-- Result card -->
+    <div class="result-card" id="rashiResultCard">
+      <div class="result-header">राशि विवरण (Rashi Details)</div>
+      <div class="result-amount" id="rashi-res-rashi" style="font-size:1.8rem;font-family:'Playfair Display',serif;">—</div>
+      <div class="result-breakdown">
+        <div class="breakdown-item"><div class="bi-label">ग्रह स्वामी (Planet)</div><div class="bi-value" id="rashi-res-planet">—</div></div>
+        <div class="breakdown-item"><div class="bi-label">मुख्य रत्न (Gemstone)</div><div class="bi-value" id="rashi-res-gem">—</div></div>
+        <div class="breakdown-item"><div class="bi-label">उपरत्न (Alternative)</div><div class="bi-value" id="rashi-res-upratna">—</div></div>
+        <div class="breakdown-item"><div class="bi-label">धारण दिवस (Wearing Day)</div><div class="bi-value" id="rashi-res-day">—</div></div>
+        <div class="breakdown-item" style="grid-column:span 2"><div class="bi-label">धारण अंगुली (Finger)</div><div class="bi-value" id="rashi-res-finger">—</div></div>
+      </div>
+    </div>
+
+    <!-- Share -->
+    <div class="bull-share-section" id="rashiShareSection">
+      <div class="share-title">📤 <span>Share Result</span></div>
+      <div class="share-btns">
+        <button class="share-btn share-wa" onclick="rashiShareWA()" style="touch-action:manipulation;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="share-btn share-copy" onclick="rashiCopy()" id="rashiCopyBtn" style="touch-action:manipulation;">
+          📋 Copy
+        </button>
+      </div>
+    </div>
+
+    <!-- Reference table -->
+    <div class="card">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">📖 Gemstone Wearing Reference</div>
+      <div class="table-scroll-wrap">
+        <table>
+          <thead><tr><th>Gemstone</th><th>Hindi</th><th>Day</th><th>Finger</th></tr></thead>
+          <tbody>
+            <tr><td>Yellow Sapphire</td><td>पुखराज</td><td>Thursday</td><td>Index Finger</td></tr>
+            <tr><td>Cat's Eye</td><td>लहसुनिया</td><td>Tue/Sat</td><td>Middle Finger</td></tr>
+            <tr><td>Blue Sapphire</td><td>नीलम</td><td>Saturday</td><td>Middle Finger</td></tr>
+            <tr><td>Opal</td><td>ओपल</td><td>Friday</td><td>Index Finger</td></tr>
+            <tr><td>Ruby</td><td>माणिक्य</td><td>Sunday</td><td>Ring Finger</td></tr>
+            <tr><td>Hessonite</td><td>गोमेद</td><td>Saturday</td><td>Middle Finger</td></tr>
+            <tr><td>Red Coral</td><td>मूंगा</td><td>Tuesday</td><td>Ring Finger</td></tr>
+            <tr><td>Emerald</td><td>पन्ना</td><td>Wednesday</td><td>Little Finger</td></tr>
+            <tr><td>Pearl</td><td>मोती</td><td>Monday</td><td>Little Finger</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /panel-rashi -->
+
+  <!-- ========== GOLD MAKING CALCULATOR TAB ========== -->
+  <div class="tab-panel" id="panel-goldmaking">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <div class="ws-header-card">
+      <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--gold-light);">🧮 Gold Making Calculator</div>
+      <div style="font-size:0.75rem;color:rgba(240,201,106,0.5);margin-top:3px;">24K vs 22K pricing with auto making % and GST</div>
+    </div>
+
+    <!-- Top rates -->
+    <div class="card">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">💰 Today's Gold Rates (per 10g)</div>
+      <div class="row">
+        <div class="field" style="margin-bottom:0">
+          <label>24 Carat Rate (₹/10g)</label>
+          <input type="number" id="gm-rate24-10g" placeholder="e.g. 75000" oninput="gmRate24Changed()">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>22 Carat Rate (₹/10g)</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="number" id="gm-rate22-10g" placeholder="e.g. 69000" style="flex:1" oninput="gm22Manual=true; gmCalc();">
+            <button onclick="gmAutoCalc22()" style="padding:10px 14px;background:var(--gold-pale);border:1.5px solid var(--gold-light);border-radius:9px;font-size:0.8rem;font-weight:700;color:var(--gold);cursor:pointer;white-space:nowrap;touch-action:manipulation;">🔄 Auto</button>
+          </div>
+          <div style="font-size:0.72rem;color:#9a8060;margin-top:4px;">Auto = 24K × 91.6%, or type manually</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 24K calculation card -->
+    <div class="card">
+      <div style="font-size:0.78rem;font-weight:700;color:#b86000;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">🟡 24 Carat Calculation</div>
+
+      <div class="field">
+        <label>Rate per Gram (24K) <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(auto)</span></label>
+        <input type="text" id="gm-rate24-pergram" readonly style="background:#f5f0e8;" placeholder="—">
+      </div>
+
+      <div style="font-size:0.7rem;font-weight:700;color:#7a6540;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">⚖️ Weight Breakdown</div>
+      <div class="row">
+        <div class="field">
+          <label>Gross Weight (g)</label>
+          <input type="number" id="gm-gross24" placeholder="e.g. 10.500" step="0.001" min="0" oninput="gmSyncWeight22(); gmCalc();">
+        </div>
+        <div class="field">
+          <label>Stone / Meena Weight (g)</label>
+          <input type="number" id="gm-stone24" placeholder="0" step="0.001" min="0" oninput="gmSyncWeight22(); gmCalc();">
+        </div>
+      </div>
+      <div class="field">
+        <label>Net Weight (g) <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(auto = Gross − Stone/Meena)</span></label>
+        <input type="text" id="gm-net24" readonly style="background:#f5f0e8;" placeholder="—">
+      </div>
+
+      <div class="field">
+        <label>Making Charges per Gram (₹)</label>
+        <input type="number" id="gm-making-pergram-24" placeholder="e.g. 500" min="0" oninput="gmCalc()">
+      </div>
+
+      <div class="field">
+        <label>Hallmark / HUID Charges (₹)</label>
+        <input type="number" id="gm-hallmark" placeholder="e.g. 200" min="0" oninput="gmCalc()">
+      </div>
+
+      <div class="field">
+        <label>Additional / Stone Charges (₹)</label>
+        <input type="number" id="gm-additional24" placeholder="0" min="0" oninput="gmCalc()">
+      </div>
+
+      <!-- GST toggle for 24K -->
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <strong>Calculate GST</strong>
+          <span>3% on Total Bill + 18% on Hallmark</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="gm-gst-toggle-24" onchange="gmCalc()">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="bull-summary-box" id="gm24Box" style="display:none">
+        <div class="bull-sum-row"><span class="bull-sum-label">Net Weight</span><span class="bull-sum-val" id="gm-24-netwt">—</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">Gold Amount (24K)</span><span class="bull-sum-val" id="gm-24-goldamt">₹ —</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">Making Charges</span><span class="bull-sum-val" id="gm-24-makingamt">₹ —</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">Hallmark Charges</span><span class="bull-sum-val" id="gm-24-hallmarkamt">₹ —</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">Additional Charges</span><span class="bull-sum-val" id="gm-24-addamt">₹ —</span></div>
+        <div class="bull-sum-row" id="gm-24-gst-bill-row" style="display:none"><span class="bull-sum-label">GST on Total Bill (3%)</span><span class="bull-sum-val" id="gm-24-gst-bill">₹ —</span></div>
+        <div class="bull-sum-row" id="gm-24-gst-hallmark-row" style="display:none"><span class="bull-sum-label">GST on Hallmark (18%)</span><span class="bull-sum-val" id="gm-24-gst-hallmark">₹ —</span></div>
+        <div class="bull-sum-divider"></div>
+        <div class="bull-sum-row total"><span class="bull-sum-label">Total (24K)</span><span class="bull-sum-val total" id="gm-24-total">₹ —</span></div>
+      </div>
+    </div>
+
+    <!-- 22K calculation card -->
+    <div class="card">
+      <div style="font-size:0.78rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">⚪ 22 Carat Calculation</div>
+
+      <div class="field">
+        <label>Rate per Gram (22K) <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(auto)</span></label>
+        <input type="text" id="gm-rate22-pergram" readonly style="background:#f5f0e8;" placeholder="—">
+      </div>
+
+      <div style="font-size:0.7rem;font-weight:700;color:#7a6540;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">⚖️ Weight Breakdown</div>
+      <div class="row">
+        <div class="field">
+          <label>Gross Weight (g)</label>
+          <input type="number" id="gm-gross22" placeholder="e.g. 10.500" step="0.001" min="0" oninput="gm22WeightManual=true; gmCalc();">
+        </div>
+        <div class="field">
+          <label>Stone / Meena Weight (g)</label>
+          <input type="number" id="gm-stone22" placeholder="0" step="0.001" min="0" oninput="gm22WeightManual=true; gmCalc();">
+        </div>
+      </div>
+      <div class="field">
+        <label>Net Weight (g) <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(auto = Gross − Stone/Meena)</span></label>
+        <input type="text" id="gm-net22" readonly style="background:#f5f0e8;" placeholder="—">
+      </div>
+
+      <div class="field">
+        <label>22K Gold Amount <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(auto)</span></label>
+        <input type="text" id="gm-22-goldamt-display" readonly style="background:#f5f0e8;" placeholder="—">
+      </div>
+
+      <div class="field">
+        <label>Making Charges (%) <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(auto — bridges 24K total to 22K)</span></label>
+        <input type="text" id="gm-making-pct-display" readonly style="background:#f5f0e8;" placeholder="—">
+      </div>
+
+      <div class="field">
+        <label>Hallmark / HUID Charges (₹)</label>
+        <input type="number" id="gm-hallmark-22" placeholder="e.g. 200" min="0" oninput="gmCalc()">
+      </div>
+
+      <div class="field">
+        <label>Additional / Stone Charges (₹)</label>
+        <input type="number" id="gm-additional22" placeholder="0" min="0" oninput="gmCalc()">
+      </div>
+
+      <!-- GST toggle -->
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <strong>Calculate GST</strong>
+          <span>3% on Total Bill + 18% on Hallmark</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="gm-gst-toggle" onchange="gmCalc()">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="bull-summary-box" id="gm22Box" style="display:none">
+        <div class="bull-sum-row"><span class="bull-sum-label">Net Weight</span><span class="bull-sum-val" id="gm-22-netwt">—</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">22K Gold Amount</span><span class="bull-sum-val" id="gm-22-goldamt">₹ —</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">Making Charges</span><span class="bull-sum-val" id="gm-22-makingamt">₹ —</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">Hallmark Charges</span><span class="bull-sum-val" id="gm-22-hallmarkamt">₹ —</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">Additional Charges</span><span class="bull-sum-val" id="gm-22-addamt">₹ —</span></div>
+        <div class="bull-sum-row" id="gm-22-gst-bill-row" style="display:none"><span class="bull-sum-label">GST on Total Bill (3%)</span><span class="bull-sum-val" id="gm-22-gst-bill">₹ —</span></div>
+        <div class="bull-sum-row" id="gm-22-gst-hallmark-row" style="display:none"><span class="bull-sum-label">GST on Hallmark (18%)</span><span class="bull-sum-val" id="gm-22-gst-hallmark">₹ —</span></div>
+        <div class="bull-sum-divider"></div>
+        <div class="bull-sum-row total"><span class="bull-sum-label">Total (22K)</span><span class="bull-sum-val total" id="gm-22-total">₹ —</span></div>
+      </div>
+    </div>
+
+    <!-- Share -->
+    <div class="bull-share-section" id="gmShareSection">
+      <div class="share-title">📤 <span>Share / Save</span></div>
+      <div class="share-btns">
+        <button class="share-btn share-wa" onclick="gmShareWA()" style="touch-action:manipulation;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp (22K)
+        </button>
+      </div>
+      <div class="share-btns" style="margin-top:10px;">
+        <button class="share-btn" style="background:#888;color:#fff;box-shadow:0 2px 10px rgba(136,136,136,0.3);touch-action:manipulation;flex:1;" onclick="gmDownloadPDF24()">
+          📄 Save PDF — 24 Carat
+        </button>
+        <button class="share-btn" style="background:var(--rust);color:#fff;box-shadow:0 2px 10px rgba(192,57,43,0.3);touch-action:manipulation;flex:1;" onclick="gmDownloadPDF22()">
+          📄 Save PDF — 22 Carat
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /panel-goldmaking -->
+
+  <!-- ========== GOLD BUYBACK CALCULATOR TAB ========== -->
+  <div class="tab-panel" id="panel-buyback">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <div class="ws-header-card">
+      <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--gold-light);">⚖️ Gold Buyback Calculator</div>
+      <div style="font-size:0.75rem;color:rgba(240,201,106,0.5);margin-top:3px;">Calculate buyback value based on purity and net weight</div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>Purity (%)</label>
+        <input type="number" id="bb-purity" placeholder="e.g. 91.60 for 22K" step="0.01" min="0" max="100" oninput="bbCalc()">
+      </div>
+
+      <div style="font-size:0.7rem;font-weight:700;color:#7a6540;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">⚖️ Weight Breakdown</div>
+      <div class="row">
+        <div class="field">
+          <label>Gross Weight (g)</label>
+          <input type="number" id="bb-gross" placeholder="e.g. 15.000" step="0.001" min="0" oninput="bbCalc()">
+        </div>
+        <div class="field">
+          <label>Meena / Stone (g)</label>
+          <input type="number" id="bb-meena" placeholder="0" step="0.001" min="0" oninput="bbCalc()">
+        </div>
+      </div>
+      <div class="field">
+        <label>Khar / Ghat (g)</label>
+        <input type="number" id="bb-khar" placeholder="0" step="0.001" min="0" oninput="bbCalc()">
+      </div>
+      <div class="field">
+        <label>Net Weight (g) <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(auto = Gross − Meena − Khar)</span></label>
+        <input type="text" id="bb-net" readonly style="background:#f5f0e8;" placeholder="—">
+      </div>
+
+      <div style="height:1px;background:linear-gradient(90deg,transparent,var(--gold-light),transparent);margin:18px 0 16px;"></div>
+
+      <div class="field">
+        <label>24 Carat Rate — 99.50 Purity (₹ per gram)</label>
+        <input type="number" id="bb-rate24" placeholder="e.g. 7550" min="0" oninput="bbCalc()">
+      </div>
+
+      <div class="bull-summary-box" id="bbBox" style="display:none">
+        <div class="bull-sum-row"><span class="bull-sum-label">Net Weight</span><span class="bull-sum-val" id="bb-sum-net">—</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">Purity</span><span class="bull-sum-val" id="bb-sum-purity">—</span></div>
+        <div class="bull-sum-row"><span class="bull-sum-label">24K Rate</span><span class="bull-sum-val" id="bb-sum-rate">—</span></div>
+        <div class="bull-sum-divider"></div>
+        <div class="bull-sum-row total"><span class="bull-sum-label">Buyback Amount</span><span class="bull-sum-val total" id="bb-sum-total">₹ —</span></div>
+      </div>
+    </div>
+
+    <!-- Share -->
+    <div class="bull-share-section" id="bbShareSection">
+      <div class="share-title">📤 <span>Share / Save</span></div>
+      <div class="share-btns">
+        <button class="share-btn share-wa" onclick="bbShareWA()" style="touch-action:manipulation;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="share-btn" style="background:var(--rust);color:#fff;box-shadow:0 2px 10px rgba(192,57,43,0.3);touch-action:manipulation;" onclick="bbDownloadPDF()">
+          📄 Save PDF
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /panel-buyback -->
+
+  <!-- ========== ALLOY MIXING CALCULATOR TAB ========== -->
+  <div class="tab-panel" id="panel-alloy">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <div class="ws-header-card">
+      <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--gold-light);">⚗️ Advanced Alloy Mixing Calculator</div>
+      <div style="font-size:0.75rem;color:rgba(240,201,106,0.5);margin-top:3px;">Find purity, reach a target, or correct a melt — for Gold & Silver</div>
+    </div>
+
+    <!-- Sub-tab selector -->
+    <div class="mode-selector" style="margin-bottom:16px;">
+      <button class="mode-pill active" id="alloy-tab1-btn" onclick="alloySwitchSubTab('final')">Find Final Purity</button>
+      <button class="mode-pill" id="alloy-tab2-btn" onclick="alloySwitchSubTab('target')">Reach Target</button>
+      <button class="mode-pill" id="alloy-tab3-btn" onclick="alloySwitchSubTab('reverse')">Reverse Purity</button>
+    </div>
+
+    <!-- ===================== TAB 1: FIND FINAL PURITY ===================== -->
+    <div class="alloy-subtab active" id="alloy-sub-final">
+      <div class="card">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Metals in the Mix</div>
+        <div style="font-size:0.74rem;color:#9a8060;margin-bottom:14px;">Add every metal going into the crucible — including alloy metals at 0% purity.</div>
+
+        <div id="alloy-final-rows"></div>
+        <button class="ws-add-more-btn" id="alloy-final-add-btn" onclick="alloyFinalAddRow()">➕ Add Metal Row</button>
+
+        <div class="bull-summary-box" id="alloyFinalBox" style="display:none">
+          <div class="bull-sum-row"><span class="bull-sum-label">Total Weight</span><span class="bull-sum-val" id="alloy-final-totalwt">— g</span></div>
+          <div class="bull-sum-row"><span class="bull-sum-label">Total Pure Metal</span><span class="bull-sum-val" id="alloy-final-totalpure">— g</span></div>
+          <div class="bull-sum-divider"></div>
+          <div class="bull-sum-row total"><span class="bull-sum-label">Final Purity</span><span class="bull-sum-val total" id="alloy-final-purity">— %</span></div>
+        </div>
+        <div class="alloy-formula-note">Formula: Pure Metal = Weight × Purity ÷ 100. Final Purity = (Total Pure Metal ÷ Total Weight) × 100</div>
+
+        <button class="clear-btn" style="margin-top:14px;" onclick="alloyFinalReset()">🗑 Reset Tab</button>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 2: REACH TARGET PURITY ===================== -->
+    <div class="alloy-subtab" id="alloy-sub-target" style="display:none">
+      <div class="card">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Base Metal</div>
+        <div class="mode-selector">
+          <button class="mode-pill active" id="alloy-target-gold-btn" onclick="alloyTargetSetMetal('gold')">🥇 Gold</button>
+          <button class="mode-pill" id="alloy-target-silver-btn" onclick="alloyTargetSetMetal('silver')">🥈 Silver</button>
+        </div>
+
+        <div class="row">
+          <div class="field" style="margin-bottom:0">
+            <label>Current Weight (g)</label>
+            <input type="number" id="alloy-target-weight" placeholder="e.g. 1000" step="0.001" min="0" oninput="alloyTargetCalc()">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Current Purity (%)</label>
+            <input type="number" id="alloy-target-currentpurity" placeholder="e.g. 98.60" step="0.001" min="0" max="100" oninput="alloyTargetCalc()">
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:14px;">
+          <label>Target Purity (%)</label>
+          <input type="number" id="alloy-target-purity" placeholder="e.g. 92.50" step="0.001" min="0" max="100" oninput="alloyTargetCalc()">
+          <div id="alloy-target-warning" style="display:none; font-size:0.74rem; color:var(--rust); margin-top:6px; font-weight:600;">⚠️ Target purity must be lower than current purity to add alloy. Use the Reverse Purity tab to increase purity instead.</div>
+        </div>
+
+        <!-- Quick presets -->
+        <div style="font-size:0.7rem;font-weight:700;color:#9a8060;text-transform:uppercase;letter-spacing:0.07em;margin:10px 0 8px;">Quick Presets</div>
+        <div class="alloy-preset-row" id="alloy-target-presets"></div>
+
+        <div class="bull-summary-box" id="alloyTargetBox" style="display:none; margin-top:14px;">
+          <div class="bull-sum-row"><span class="bull-sum-label">Pure Metal Content</span><span class="bull-sum-val" id="alloy-target-purecontent">— g</span></div>
+          <div class="bull-sum-row"><span class="bull-sum-label">Required Final Weight</span><span class="bull-sum-val" id="alloy-target-finalwt">— g</span></div>
+          <div class="bull-sum-divider"></div>
+          <div class="bull-sum-row total"><span class="bull-sum-label">Total Alloy Required</span><span class="bull-sum-val total" id="alloy-target-alloyreq">— g</span></div>
+        </div>
+        <div class="alloy-formula-note">Formula: Required Final Weight = (Weight × Purity÷100) ÷ (Target÷100). Alloy Required = Final Weight − Current Weight</div>
+      </div>
+
+      <!-- Alloy Distribution -->
+      <div class="card" id="alloyDistCard" style="display:none">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Alloy Distribution</div>
+        <div style="font-size:0.74rem;color:#9a8060;margin-bottom:14px;">Split the required alloy between metals — percentages must total 100%.</div>
+        <div id="alloy-dist-rows"></div>
+        <button class="ws-add-more-btn" id="alloy-dist-add-btn" onclick="alloyDistAddRow()">➕ Add Alloy Metal</button>
+        <div class="bull-summary-box" id="alloyDistBox" style="display:none">
+          <div id="alloy-dist-results"></div>
+          <div class="bull-sum-divider"></div>
+          <div class="bull-sum-row" id="alloy-dist-pct-check"><span class="bull-sum-label">Percentage Total</span><span class="bull-sum-val" id="alloy-dist-pcttotal">0%</span></div>
+        </div>
+      </div>
+
+      <!-- Melting Loss -->
+      <div class="card" id="alloyLossCard" style="display:none">
+        <div class="toggle-row" style="margin-bottom:0;">
+          <div class="toggle-info">
+            <strong>Include Melting Loss</strong>
+            <span>Compensate cadmium/zinc evaporation during melt</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="alloy-loss-toggle" onchange="alloyLossToggle()">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div id="alloy-loss-section" style="display:none; margin-top:16px;">
+          <div id="alloy-loss-rows"></div>
+          <div class="table-scroll-wrap" style="margin-top:10px;">
+            <table id="alloy-loss-table" style="display:none;">
+              <thead><tr><th>Metal</th><th>Required</th><th>Loss %</th><th>Actual to Add</th></tr></thead>
+              <tbody id="alloy-loss-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <button class="calc-btn" style="margin-top:16px;" onclick="alloyCalcFinalRecipe()">🧮 Calculate Final Recipe</button>
+      </div>
+
+      <!-- Final Complete Recipe Summary -->
+      <div class="card" id="alloyRecipeCard" style="display:none">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">📋 Complete Melting Recipe</div>
+        <div class="table-scroll-wrap">
+          <table class="alloy-recipe-table">
+            <thead><tr><th>Metal</th><th>Put in Crucible</th></tr></thead>
+            <tbody id="alloy-recipe-tbody"></tbody>
+          </table>
+        </div>
+        <div class="bull-summary-box" style="margin-top:14px;">
+          <div class="bull-sum-row"><span class="bull-sum-label">Total Weight Charged (everything you put in)</span><span class="bull-sum-val" id="alloy-recipe-totalcharged">— g</span></div>
+          <div class="bull-sum-row"><span class="bull-sum-label">Total Loss During Melting</span><span class="bull-sum-val" id="alloy-recipe-totalloss">— g</span></div>
+          <div class="bull-sum-divider"></div>
+          <div class="bull-sum-row total"><span class="bull-sum-label">Final Weight After Melting</span><span class="bull-sum-val total" id="alloy-recipe-finalweight">— g</span></div>
+        </div>
+        <div class="alloy-formula-note">This is everything to physically charge into the crucible. The loss column accounts for metal that burns off during melting — what comes out the other end is the Final Weight, matching your target purity.</div>
+      </div>
+
+      <button class="clear-btn" onclick="alloyTargetReset()">🗑 Reset Tab</button>
+    </div>
+
+    <!-- ===================== TAB 3: REVERSE PURITY ===================== -->
+    <div class="alloy-subtab" id="alloy-sub-reverse" style="display:none">
+      <div class="card">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Correction Direction</div>
+        <div class="mode-selector">
+          <button class="mode-pill active" id="alloy-rev-increase-btn" onclick="alloyRevSetDir('increase')">⬆️ Increase Purity</button>
+          <button class="mode-pill" id="alloy-rev-decrease-btn" onclick="alloyRevSetDir('decrease')">⬇️ Reduce Purity</button>
+        </div>
+
+        <div class="row" style="margin-top:14px;">
+          <div class="field" style="margin-bottom:0">
+            <label>Current Weight (g)</label>
+            <input type="number" id="alloy-rev-weight" placeholder="e.g. 1060" step="0.001" min="0" oninput="alloyRevCalc()">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Current Purity (%)</label>
+            <input type="number" id="alloy-rev-currentpurity" placeholder="e.g. 91.80" step="0.001" min="0" max="100" oninput="alloyRevCalc()">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:14px;">
+          <div class="field" style="margin-bottom:0">
+            <label>Target Purity (%)</label>
+            <input type="number" id="alloy-rev-target" placeholder="e.g. 92.50" step="0.001" min="0" max="100" oninput="alloyRevCalc()">
+          </div>
+          <div class="field" id="alloy-rev-alloypurity-field" style="margin-bottom:0; display:none;">
+            <label>Added Alloy Purity (%) <span style="font-size:0.68rem;color:#9a8060;font-weight:400;text-transform:none;">(0 for pure copper)</span></label>
+            <input type="number" id="alloy-rev-alloypurity" placeholder="0" step="0.001" min="0" max="100" value="0" oninput="alloyRevCalc()">
+          </div>
+        </div>
+        <div id="alloy-rev-warning" style="display:none; font-size:0.74rem; color:var(--rust); margin-top:10px; font-weight:600;"></div>
+
+        <div class="bull-summary-box" id="alloyRevBox" style="display:none; margin-top:14px;">
+          <div class="bull-sum-row"><span class="bull-sum-label" id="alloy-rev-add-label">Pure Metal to Add</span><span class="bull-sum-val" id="alloy-rev-addamt">— g</span></div>
+          <div class="bull-sum-divider"></div>
+          <div class="bull-sum-row"><span class="bull-sum-label">Corrected Final Weight</span><span class="bull-sum-val" id="alloy-rev-finalwt">— g</span></div>
+          <div class="bull-sum-row total"><span class="bull-sum-label">Corrected Final Purity</span><span class="bull-sum-val total" id="alloy-rev-finalpurity">— %</span></div>
+        </div>
+        <div class="alloy-formula-note" id="alloy-rev-note">Formula: X = (Target% × Weight − Current Pure) ÷ (1 − Target%). Adding pure metal raises purity toward target.</div>
+
+        <button class="clear-btn" style="margin-top:14px;" onclick="alloyRevReset()">🗑 Reset Tab</button>
+      </div>
+    </div>
+
+  </div><!-- /panel-alloy -->
+
+  <!-- ========== COLLECT PAYMENT TAB ========== -->
+  <div class="tab-panel" id="panel-payment">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <div class="ws-header-card">
+      <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--gold-light);">💳 Collect Payment</div>
+      <div style="font-size:0.75rem;color:rgba(240,201,106,0.5);margin-top:3px;">Cash counter · UPI QR · Split · Receipts</div>
+    </div>
+
+    <!-- ── COMMON TOP FIELDS ── -->
+    <div class="card">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">📋 Bill Details</div>
+      <div class="row">
+        <div class="field" style="margin-bottom:0">
+          <label>Customer Name (optional)</label>
+          <input type="text" id="cp-customer-name" placeholder="e.g. Rahul Shah">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Bill Reference (optional)</label>
+          <input type="text" id="cp-bill-ref" placeholder="e.g. SJ-1025">
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px;margin-bottom:0">
+        <label>Total Bill Amount (₹)</label>
+        <input type="number" id="cp-bill-amount" placeholder="e.g. 5000" min="0" oninput="cpBillChanged()">
+      </div>
+    </div>
+
+    <!-- ── MODE SELECTOR ── -->
+    <div class="mode-selector">
+      <button class="mode-pill active" id="cp-mode-cash" onclick="cpSwitchMode('cash')">💵 Cash</button>
+      <button class="mode-pill" id="cp-mode-upi" onclick="cpSwitchMode('upi')">📱 UPI / Online</button>
+      <button class="mode-pill" id="cp-mode-split" onclick="cpSwitchMode('split')">⚖️ Split</button>
+    </div>
+
+    <!-- ── DENOMINATION TABLE (shared: Cash + Split) ── -->
+    <div class="card" id="cp-denom-card">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">💵 Count Notes Received</div>
+      <div class="cp-denom-table">
+        <div class="cp-denom-head"><span>Note</span><span>Qty</span><span>Subtotal</span></div>
+        <div class="cp-denom-row"><span class="cp-denom-note">₹ 500</span><input type="number" id="cp-cash-qty-500" placeholder="0" min="0" oninput="cpCalcCash()"><span class="cp-denom-sub" id="cp-cash-sub-500"></span></div>
+        <div class="cp-denom-row"><span class="cp-denom-note">₹ 200</span><input type="number" id="cp-cash-qty-200" placeholder="0" min="0" oninput="cpCalcCash()"><span class="cp-denom-sub" id="cp-cash-sub-200"></span></div>
+        <div class="cp-denom-row"><span class="cp-denom-note">₹ 100</span><input type="number" id="cp-cash-qty-100" placeholder="0" min="0" oninput="cpCalcCash()"><span class="cp-denom-sub" id="cp-cash-sub-100"></span></div>
+        <div class="cp-denom-row"><span class="cp-denom-note">₹  50</span><input type="number" id="cp-cash-qty-50"  placeholder="0" min="0" oninput="cpCalcCash()"><span class="cp-denom-sub" id="cp-cash-sub-50"></span></div>
+        <div class="cp-denom-row"><span class="cp-denom-note">₹  20</span><input type="number" id="cp-cash-qty-20"  placeholder="0" min="0" oninput="cpCalcCash()"><span class="cp-denom-sub" id="cp-cash-sub-20"></span></div>
+        <div class="cp-denom-row"><span class="cp-denom-note">₹  10</span><input type="number" id="cp-cash-qty-10"  placeholder="0" min="0" oninput="cpCalcCash()"><span class="cp-denom-sub" id="cp-cash-sub-10"></span></div>
+      </div>
+      <div class="cp-cash-total-row">
+        <span>Total Cash Received</span>
+        <span class="cp-cash-total-val" id="cp-cash-total">₹0</span>
+      </div>
+      <!-- Change calculator -->
+      <div class="cp-change-box" id="cp-change-box" style="display:none">
+        <div class="cp-change-label" id="cp-change-label">Change to Return</div>
+        <div class="cp-change-amount" id="cp-change-amount">₹0</div>
+      </div>
+    </div>
+
+    <!-- ── CASH-ONLY ACTIONS ── -->
+    <div id="cp-section-cash">
+      <button class="calc-btn" onclick="cpCollectCash()">✅ Collect Cash & Generate Receipt</button>
+    </div>
+
+    <!-- ── UPI SECTION ── -->
+    <div id="cp-section-upi" style="display:none">
+      <div class="card">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">📱 UPI Payment</div>
+        <div class="field">
+          <label>Amount (₹)</label>
+          <input type="number" id="cp-upi-amount" placeholder="e.g. 5000" min="0">
+        </div>
+        <!-- Quick presets -->
+        <div style="font-size:0.7rem;font-weight:700;color:#9a8060;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Quick Amounts</div>
+        <div class="cp-preset-row">
+          <button class="alloy-preset-btn" onclick="cpSetPreset(500)">₹500</button>
+          <button class="alloy-preset-btn" onclick="cpSetPreset(1000)">₹1,000</button>
+          <button class="alloy-preset-btn" onclick="cpSetPreset(2000)">₹2,000</button>
+          <button class="alloy-preset-btn" onclick="cpSetPreset(5000)">₹5,000</button>
+          <button class="alloy-preset-btn" onclick="cpSetPreset(10000)">₹10,000</button>
+        </div>
+        <div class="field" style="margin-top:14px;margin-bottom:0">
+          <label>Remark <span style="font-size:0.68rem;color:#9a8060;font-weight:400;">(max 30 characters)</span></label>
+          <input type="text" id="cp-upi-remark" placeholder="e.g. Silver Payal Invoice" maxlength="30" oninput="this.value=this.value.slice(0,30)">
+        </div>
+        <button class="calc-btn" style="margin-top:14px;" onclick="cpGenerateQR()">📱 Generate Payment QR</button>
+      </div>
+
+      <!-- QR Display -->
+      <div class="card" id="cp-qr-card" style="display:none">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">📲 Scan to Pay</div>
+        <div style="display:flex;justify-content:center;margin-bottom:16px;">
+          <canvas id="cp-framed-qr" style="border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);max-width:100%;"></canvas>
+        </div>
+        <div id="cp-qr-hidden-container" style="display:none;"></div>
+        <div class="share-btns" style="flex-wrap:wrap;gap:10px;">
+          <button class="share-btn" style="background:linear-gradient(135deg,#1a6b1a,#2ea82e);color:#fff;touch-action:manipulation;" onclick="cpShareQR()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Share QR + Text
+          </button>
+          <button class="share-btn share-copy" onclick="cpDownloadQR()" style="touch-action:manipulation;">⬇️ Download QR</button>
+          <button class="share-btn" style="background:var(--rust);color:#fff;touch-action:manipulation;" onclick="cpSaveUPIPayment()">✅ Mark as Paid</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SPLIT SECTION ── -->
+    <div id="cp-section-split" style="display:none">
+      <div class="card">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">📱 UPI Remaining Amount</div>
+        <div class="field" style="margin-bottom:8px">
+          <label>UPI Amount (₹) <span style="font-size:0.68rem;color:#9a8060;font-weight:400;">(auto = Bill − Cash)</span></label>
+          <input type="number" id="cp-split-upi-amount" placeholder="Auto-calculated" min="0" oninput="cpUpdateSplitBalance()">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>UPI Remark <span style="font-size:0.68rem;color:#9a8060;font-weight:400;">(max 30 chars)</span></label>
+          <input type="text" id="cp-split-remark" placeholder="e.g. Balance via UPI" maxlength="30">
+        </div>
+        <div class="cp-split-balance" id="cp-split-balance" style="display:none"></div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+          <button class="calc-btn" style="flex:1;" onclick="cpGenerateSplitQR()">📱 Generate UPI QR for Remaining</button>
+        </div>
+        <div style="display:flex;justify-content:center;margin-top:14px;">
+          <canvas id="cp-split-framed-qr" style="display:none;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);max-width:100%;"></canvas>
+        </div>
+        <div id="cp-split-qr-actions" style="display:none;margin-top:12px;">
+          <div class="share-btns" style="flex-wrap:wrap;gap:10px;">
+            <button class="share-btn" style="background:linear-gradient(135deg,#1a6b1a,#2ea82e);color:#fff;" onclick="cpShareSplitQR()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.76-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              Share QR
+            </button>
+            <button class="share-btn share-copy" onclick="cpDownloadSplitQR()">⬇️ Download</button>
+          </div>
+        </div>
+        <button class="calc-btn" style="background:linear-gradient(135deg,#1a6b1a,#27ae60);margin-top:14px;" onclick="cpCollectSplit()">✅ Collect Full Split Payment</button>
+      </div>
+    </div>
+
+    <!-- ── RECEIPT DISPLAY ── -->
+    <div id="cp-receipt-card" style="display:none">
+      <div class="card">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">🧾 Payment Receipt</div>
+        <div id="cp-receipt-output"></div>
+        <div class="share-btns" style="margin-top:14px;flex-wrap:wrap;gap:10px;">
+          <button class="share-btn" style="background:linear-gradient(135deg,#1a6b1a,#2ea82e);color:#fff;touch-action:manipulation;" onclick="cpShareReceipt()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Share Receipt on WhatsApp
+          </button>
+          <button class="share-btn share-copy" onclick="cpNewPayment()" style="touch-action:manipulation;">🔄 New Payment</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RECENT PAYMENTS ── -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;">📜 Recent Payments (Last 10)</div>
+        <button class="ws-pack-remove" onclick="cpClearRecent()" title="Clear history" style="width:28px;height:28px;font-size:0.8rem;">🗑</button>
+      </div>
+      <div id="cp-recent-list"><div style="text-align:center;padding:20px;color:#9a8060;font-size:0.8rem;">No recent payments yet</div></div>
+    </div>
+
+    <!-- Reset -->
+    <button class="clear-btn" onclick="cpNewPayment()">🔄 Clear & New Payment</button>
+
+  </div><!-- /panel-payment -->
+
+  <!-- ========== LIVE RATE REFERENCE TAB ========== -->
+  <div class="tab-panel" id="panel-rates">
+    <div class="back-bar"><button class="back-btn" onclick="switchTab('home')">← Home</button></div>
+
+    <!-- Rates / Market mode toggle -->
+    <div class="mode-selector" style="margin-bottom:12px;">
+      <button class="mode-pill active" id="rf-view-rates-btn" onclick="rfSwitchView('rates')">💰 Rates</button>
+      <button class="mode-pill" id="rf-view-market-btn" onclick="rfSwitchView('market')">📊 Market</button>
+    </div>
+
+    <!-- ══════════ RATES VIEW (Gold/Silver WebSocket board) ══════════ -->
+    <div id="rf-rates-view">
+
+    <!-- Status Bar — manual connect since this is single-user, deliberate viewing -->
+    <div class="rf-status-bar">
+      <div class="rf-status-left">
+        <span class="rf-dot" id="rf-dot"></span>
+        <span class="rf-status-text" id="rf-status-text">Disconnected</span>
+      </div>
+      <span class="rf-updated" id="rf-last-update"></span>
+      <button class="rf-ctrl-btn" id="rf-connect-btn" onclick="rf2Start()">🔌 Connect</button>
+      <button class="rf-ctrl-btn rf-disc-btn" id="rf-disconnect-btn" onclick="rf2Stop()" style="display:none">⏹ Stop</button>
+    </div>
+
+    <!-- Rate Board -->
+    <div class="rf-board">
+
+      <!-- Column Headers -->
+      <div class="rf-board-head">
+        <div>Instrument</div>
+        <div class="rf-col-sell">SELL</div>
+        <div class="rf-col-buy">BUY</div>
+      </div>
+
+      <div class="rf-row rf-row-gold" id="rf-row-comexGold">
+        <div class="rf-row-name">🥇 Comex Gold</div>
+        <div class="rf-row-sell" id="rf-sell-comexGold">—</div>
+        <div class="rf-row-buy"  id="rf-buy-comexGold">—</div>
+      </div>
+      <div class="rf-row rf-row-silver" id="rf-row-comexSilver">
+        <div class="rf-row-name">🥈 Comex Silver</div>
+        <div class="rf-row-sell" id="rf-sell-comexSilver">—</div>
+        <div class="rf-row-buy"  id="rf-buy-comexSilver">—</div>
+      </div>
+      <div class="rf-row" id="rf-row-usdInr">
+        <div class="rf-row-name">💵 USD / INR</div>
+        <div class="rf-row-sell" id="rf-sell-usdInr">—</div>
+        <div class="rf-row-buy"  id="rf-buy-usdInr">—</div>
+      </div>
+      <div class="rf-row rf-row-silver" id="rf-row-silverChorsa">
+        <div class="rf-row-name">🥈 Silver Chorsa</div>
+        <div class="rf-row-sell" id="rf-sell-silverChorsa">—</div>
+        <div class="rf-row-buy"  id="rf-buy-silverChorsa">—</div>
+      </div>
+      <div class="rf-row rf-row-gold" id="rf-row-gold24">
+        <div class="rf-row-name">🥇 Gold 24 (99.50)</div>
+        <div class="rf-row-sell" id="rf-sell-gold24">—</div>
+        <div class="rf-row-buy"  id="rf-buy-gold24">—</div>
+      </div>
+      <div class="rf-row rf-row-gold" id="rf-row-gold22">
+        <div class="rf-row-name">🥇 Gold 22 Carat <span style="font-size:0.6rem;color:#9a8060;font-weight:400;">(auto)</span></div>
+        <div class="rf-row-sell" id="rf-sell-gold22">—</div>
+        <div class="rf-row-buy"  id="rf-buy-gold22">—</div>
+      </div>
+      <div class="rf-row rf-row-gold" id="rf-row-goldRtgs">
+        <div class="rf-row-name">🥇 Gold RTGS</div>
+        <div class="rf-row-sell" id="rf-sell-goldRtgs">—</div>
+        <div class="rf-row-buy"  id="rf-buy-goldRtgs">—</div>
+      </div>
+      <div class="rf-row rf-row-silver" id="rf-row-silverRtgs">
+        <div class="rf-row-name">🥈 Silver RTGS</div>
+        <div class="rf-row-sell" id="rf-sell-silverRtgs">—</div>
+        <div class="rf-row-buy"  id="rf-buy-silverRtgs">—</div>
+      </div>
+      <div class="rf-row rf-row-gold" id="rf-row-mcxGold">
+        <div class="rf-row-name">🥇 Gold MCX</div>
+        <div class="rf-row-sell" id="rf-sell-mcxGold">—</div>
+        <div class="rf-row-buy"  id="rf-buy-mcxGold">—</div>
+      </div>
+      <div class="rf-row rf-row-silver" id="rf-row-mcxSilver">
+        <div class="rf-row-name">🥈 Silver MCX</div>
+        <div class="rf-row-sell" id="rf-sell-mcxSilver">—</div>
+        <div class="rf-row-buy"  id="rf-buy-mcxSilver">—</div>
+      </div>
+
+    </div><!-- /rf-board -->
+
+    <!-- Link unlinked slots (Silver Chorsa, Gold 24, Gold RTGS, Silver RTGS) to a raw feed instrument name -->
+    <div class="card" id="rf-discovery-card" style="margin-top:12px;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">🔗 Link Instruments to Cards</div>
+      <div style="font-size:0.72rem;color:#9a8060;margin-bottom:10px;">Pick the matching instrument from your live feed and link it to one of the empty cards above.</div>
+      <div id="rf-discovery-list"></div>
+    </div>
+
+    <!-- Log -->
+    <div class="card" id="rf-log-card" style="display:none;margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;">📋 Log</div>
+        <button class="ws-pack-remove" onclick="rfClearLog()" style="width:26px;height:26px;font-size:0.75rem;">🗑</button>
+      </div>
+      <div id="rf-log-list" style="max-height:140px;overflow-y:auto;"></div>
+    </div>
+
+    </div><!-- /rf-rates-view -->
+
+    <!-- ══════════ MARKET VIEW (MCX Commodity board) ══════════ -->
+    <div id="rf-market-view" style="display:none">
+
+      <!-- Status Bar -->
+      <div class="rf-status-bar">
+        <div class="rf-status-left">
+          <span class="rf-dot" id="rm-dot"></span>
+          <span class="rf-status-text" id="rm-status-text">Connecting...</span>
+        </div>
+        <span class="rf-updated" id="rm-last-update"></span>
+      </div>
+      <div class="rm-stale-banner" id="rm-stale-banner" style="display:none">⚠️ Showing last known rates — provider temporarily unreachable</div>
+
+      <!-- Spot row: Spot Gold / Spot Silver / Spot USDINR -->
+      <div class="rm-spot-grid" id="rm-spot-grid"></div>
+
+      <!-- Featured: Gold + Silver MCX (auto-rolled to current active contract) -->
+      <div class="rm-section-label" id="rm-featured-label" style="display:none">MCX Futures</div>
+      <div class="rm-featured-grid" id="rm-featured-grid"></div>
+
+      <!-- Rest of MCX commodities -->
+      <div class="rm-grid" id="rm-rest-grid"></div>
+
+      <div class="rm-empty-state" id="rm-empty-state">
+        <div style="font-size:1.6rem;margin-bottom:6px;">📊</div>
+        <div style="font-weight:700;color:var(--gold);">Loading market data…</div>
+      </div>
+
+    </div><!-- /rf-market-view -->
+
+  </div><!-- /panel-rates -->
+
+</div><!-- /container -->
+
+
+
+
+<script src="js/app.js"></script>
+</body>
+</html>
